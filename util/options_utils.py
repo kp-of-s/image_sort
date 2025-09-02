@@ -15,7 +15,7 @@ def load_options():
     """
     options_file = get_options_file()
     if not os.path.exists(options_file):
-        print(f"옵션 파일 없음: {options_file}")
+        # 옵션 파일 없음: {options_file}
         return []
 
     with open(options_file, "r", encoding="utf-8") as f:

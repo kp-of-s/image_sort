@@ -1,3 +1,6 @@
 pandas
 Pillow
 pyinstaller
+torch
+torchvision
+git+https://github.com/openai/CLIP.git

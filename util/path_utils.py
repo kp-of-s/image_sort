@@ -34,7 +34,11 @@ def get_data_subpath(subfolder=""):
 def folder_to_csv_name(folder_path):
     """
     폴더 경로에서 마지막 폴더명 + '.csv' 반환
-    예: 'data/선택한폴더명' → '선택한폴더명.csv'
+    unsorted_ 접두사가 있으면 제거
+    예: 'data/unsorted_선택한폴더명' → '선택한폴더명.csv'
     """
     folder_name = os.path.basename(folder_path.rstrip("/\\"))
+    # unsorted_ 접두사 제거
+    if folder_name.startswith("unsorted_"):
+        folder_name = folder_name[9:]  # "unsorted_" (9글자) 제거
     return f"{folder_name}.csv"
