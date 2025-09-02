@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext
 import threading
 from module.image_sort_module import image_sorting
+from module.text_sort_module import text_sorting
 
 def open_sort_progress_page(root, dest_path):
     """
@@ -57,22 +58,48 @@ def open_sort_progress_page(root, dest_path):
             
             log("오류: 폴더 복사 완료를 확인할 수 없습니다.")
             return False
+
+        async def run_text_sorting():
+            """텍스트 분류 실행"""
+            log("텍스트 분류 시작...")
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, text_sorting, dest_path, log)
+                log("텍스트 분류 완료!")
+            except Exception as e:
+                log(f"텍스트 분류 중 오류 발생: {str(e)}")
         
         async def run_image_sorting():
-            """비동기적으로 이미지 분류 실행"""
+            """이미지 분류 실행"""
             log("이미지 분류 시작...")
             try:
-                # image_sorting을 비동기로 실행 (log 함수 전달)
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, image_sorting, dest_path, dest_path, log)
+                await loop.run_in_executor(None, image_sorting, dest_path, log)
                 log("정렬 완료!")
             except Exception as e:
                 log(f"정렬 중 오류 발생: {str(e)}")
+
+        async def rename_sorted_folder():
+            # 폴더의 마지막 부분(폴더명) 가져오기
+            folder_name = os.path.basename(dest_path)
+            
+            if '_' in folder_name:
+                new_folder_name = folder_name.split('_', 1)[1]
+                new_path = os.path.join(os.path.dirname(dest_path), new_folder_name)
+                
+                # 폴더 이름 변경
+                os.rename(dest_path, new_path)
+                log(f"폴더 이름이 변경되었습니다: {dest_path} -> {new_path}")
+            else:
+                log("폴더 이름 변경에 문제가 발생했습니다.")
+
         
         async def main():
             """메인 비동기 함수"""
             if await wait_for_copy_completion():
+                await run_text_sorting()
                 await run_image_sorting()
+                await rename_sorted_folder()
         
         # 비동기 함수 실행
         asyncio.run(main())

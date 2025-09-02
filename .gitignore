@@ -152,8 +152,7 @@ Thumbs.db
 
 # Project specific
 # 데이터 폴더 (이미지 파일들이 포함된 폴더)
-data/unsorted_*/
-data/sorted_*/
+data/*
 
 # 임시 파일
 temp/
@@ -164,8 +163,8 @@ tmp/
 *.log
 
 # 설정 파일 (민감한 정보가 포함될 수 있음)
-config/local_*.txt
-config/*_secret.txt
+config/*.txt
+config/*.json
 
 # 빌드 결과물
 build/

@@ -4,32 +4,22 @@ import clip
 from PIL import Image
 from tqdm import tqdm
 import pandas as pd
-from util.path_utils import get_data_root, folder_to_csv_name
+from util.path_utils import get_data_root, folder_to_csv_name, get_config_path
+import json
 
 
 """텍스트 쿼리 => 타입 변환 매핑"""
-query_to_category = {
-    "parking_lot": "노외 주차",
-    "street": "재분류",
-    "wall": "재분류",
-    "many_signboard": "상가",
-    "few_signboard": "주택가",
-    "none": "미분류",
-    "missing_image": "이미지누락",
-    "file_not_found": "파일없음"
-}
 
-"""텍스트 쿼리 => 타입 변환 매핑"""
-typetwo_to_typeone = {
-    "노외 주차": "실외 주차장",
-    "상가": "골목길",
-    "주택가": "골목길",
-}
+with open(os.path.join(get_config_path(), "query_to_category.json"), 'r', encoding='utf-8') as f:
+    query_to_category = json.load(f)
 
-category_rayer = [
-    ["NaN", "parking_lot", "street", "wall"],
-    ["street", "many_signboard", "few_signboard"],
-]
+"""타입2기반 타입1 입력"""
+with open(os.path.join(get_config_path(), "typetwo_to_typeone.json"), 'r', encoding='utf-8') as f:
+    typetwo_to_typeone = json.load(f)
+
+"""clip이 분류할 내용"""
+with open(os.path.join(get_config_path(), "category_rayer.json"), 'r', encoding='utf-8') as f:
+    category_rayer = json.load(f)
 
 """누락된 이미지 등 수색"""
 
@@ -65,7 +55,7 @@ def map_query_to_category(query, mapping_dict):
     if query in mapping_dict:
         return mapping_dict[query]
     else:
-        return "none"
+        return query
 
 """클립을 사용한 이미지 카테고리 변환 함수."""
 
@@ -89,7 +79,7 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
     CONFIDENCE_THRESHOLD = 0.25
 
     # 기존 CSV 불러오기
-    df = pd.read_csv(csv_path, na_values=["Nan", "nan", "NaN"])
+    df = pd.read_csv(csv_path, na_values=["Nan", "nan", "NaN", "미분류"])
     # print(df.columns)
 
     # 첫 번째 분류에서는 모든 NaN 값들을 대상으로 함
@@ -131,13 +121,13 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
 
                 if top_score < CONFIDENCE_THRESHOLD:
                     # 확인
-                    results.append({'image': filename, 'type2': 'none'})
+                    results.append({'image': filename, 'type2': '미분류'})
                 else:
                     category = categories[top_index.item()]
                     results.append({'image': filename, 'type2': category})
         except Exception as e:
             # Skipping file: {filename} due to error: {e}
-            results.append({'image': filename, 'type2': 'none'})
+            results.append({'image': filename, 'type2': '미분류'})
 
     log_func("모델 분류 완료, 결과 저장 중")
     results_df = pd.DataFrame(results)
@@ -182,7 +172,7 @@ def category_to_csv_category(csv_path):
     # 결과 CSV 저장 완료: {csv_path}
 
 """메인 셀. 추가할 내용은 상단에 함수형으로 셀 추가, 메인 셀에서 실행."""
-def image_sorting(folder_path, dest_path, log_func=print):
+def image_sorting(folder_path, log_func=print):
     base_dir = folder_path
     input_folder = os.path.join(base_dir, 'image')
     csv_path = os.path.join(base_dir, folder_to_csv_name(base_dir))
