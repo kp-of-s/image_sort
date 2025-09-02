@@ -1,4 +1,5 @@
 import os
+import json
 from util.path_utils import get_project_root
 
 def get_options_file():
@@ -7,7 +8,7 @@ def get_options_file():
     exe 또는 소스 환경 모두 대응
     """
     base = get_project_root()
-    return os.path.join(base, "config", "options.txt")
+    return os.path.join(base, "config", "options.json")
 
 def load_options():
     """
@@ -18,5 +19,5 @@ def load_options():
         # 옵션 파일 없음: {options_file}
         return []
 
-    with open(options_file, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
+    with open(os.path.join(options_file), 'r', encoding='utf-8') as f:
+        return json.load(f)
