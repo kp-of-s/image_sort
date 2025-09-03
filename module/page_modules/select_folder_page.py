@@ -21,6 +21,9 @@ def open_select_folder_page(root, data_path):
     def populate_tree(parent_node, parent_path):
         try:
             for name in os.listdir(parent_path):
+                for name in os.listdir(parent_path):
+                    if name.startswith("unsorted_"):
+                        continue
                 full_path = os.path.join(parent_path, name)
                 if os.path.isdir(full_path):
                     node = tree.insert(parent_node, "end", text=name, values=[full_path])

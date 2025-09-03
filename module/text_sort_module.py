@@ -53,7 +53,7 @@ def load_rules_from_txt(config_file: str) -> List[Dict]:
 
 
 def classify_row(row: pd.Series, rules: List[Dict],
-                 search_cols: Tuple[str, str] = ("Parking_Name", "Address")) -> Tuple[str, str, str]:
+                 search_cols: Tuple[str, str] = ("name", "address")) -> Tuple[str, str, str]:
     name = str(row.get(search_cols[0], "")).strip()
     addr = str(row.get(search_cols[1], "")).strip()
     haystack = f"{name} {addr}"

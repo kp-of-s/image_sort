@@ -9,7 +9,6 @@ import json
 
 
 """텍스트 쿼리 => 타입 변환 매핑"""
-
 with open(os.path.join(get_config_path(), "query_to_category.json"), 'r', encoding='utf-8') as f:
     query_to_category = json.load(f)
 
@@ -24,7 +23,6 @@ with open(os.path.join(get_config_path(), "category_rayer.json"), 'r', encoding=
 """누락된 이미지 등 수색"""
 
 def validate_and_update_image_categories(csv_path, input_folder):
-
     df = pd.read_csv(csv_path)
     # type2 컬럼이 없으면 생성하고 NaN으로 초기화
     if 'type2' not in df.columns:
