@@ -80,7 +80,7 @@ class UploadManager:
 
         return (len(duplicates) > 0, duplicates)
 
-    
+
     def upload_folder(self, source_folder_path):
         """
         소스 폴더 및 하위 폴더를 검사하여 유효한 폴더를
@@ -89,6 +89,22 @@ class UploadManager:
         Returns:
             tuple: (bool, list_of_copied_paths, list_of_errors)
         """
+
+        def make_dest_path(source_folder_path, data_root):
+            # 상대 경로를 뽑아냄 (업로드 루트 기준)
+            # 여기서는 유저가 직접 올린 최상위 폴더를 base로 삼음
+            parent_path, last_folder = os.path.split(source_folder_path.rstrip("/\\"))
+            rel_path = os.path.relpath(parent_path, start=os.path.dirname(source_folder_path))
+
+            # 중간 폴더 구조 복원
+            if rel_path == ".":
+                # 중간 구조가 없는 경우 (폴더c만 업로드된 경우)
+                dest_path = os.path.join(data_root, f"unsorted_{last_folder}")
+            else:
+                dest_path = os.path.join(data_root, rel_path, f"unsorted_{last_folder}")
+            
+            return dest_path
+
         # 1. 폴더 구조 검증 (유효 폴더 리스트 반환)
         is_valid, valid_folders, error_msg = self.validate_folder_structure(source_folder_path)
         if not is_valid:
@@ -105,20 +121,20 @@ class UploadManager:
         # 3. 각 유효 폴더 복사
         for folder_path in valid_folders:
             folder_name = os.path.basename(folder_path.rstrip("/\\"))
-            dest_path = os.path.join(self.data_root, f"unsorted_{folder_name}")
+            dest_path = make_dest_path(source_folder_path, self.data_root)
 
             try:
                 shutil.copytree(folder_path, dest_path)
                 copied_paths.append(dest_path)
-                print("복사 완료:", dest_path)
+                print("복사 완료:", copied_paths)
             except Exception as e:
                 error_messages.append(f"{folder_name} 복사 실패: {str(e)}")
 
         # 4. 최종 결과 반환
         if error_messages:
-            return False, copied_paths, error_messages
+            return False, [copied_paths], error_messages
         else:
-            return True, copied_paths, None
+            return True, [copied_paths], None
 
 
 
