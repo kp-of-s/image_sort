@@ -3,6 +3,7 @@ import torch
 import clip
 from PIL import Image
 from tqdm import tqdm
+import sys
 import pandas as pd
 from util.path_utils import get_data_root, folder_to_csv_name, get_config_path
 import json
@@ -101,7 +102,13 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
     # print(repr(target_filenames))
 
     log_func("모델 분류 시작")
-    for filename in tqdm(os.listdir(input_folder)):
+
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, 'w')
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, 'w')
+
+    for filename in tqdm(os.listdir(input_folder), file=sys.stdout):
         # print(repr(filename))
         filename = unicodedata.normalize('NFC', filename.strip())
         if filename not in target_filenames:

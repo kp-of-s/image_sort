@@ -5,7 +5,7 @@ from module.image_sort_module import image_sorting
 from module.text_sort_module import text_sorting
 from module.components.home_button import go_main
 
-def open_sort_progress_page(root, dest_path):
+def open_sort_progress_page(root, dest_paths):
     """
     정렬 작업 진행 페이지
     :param root: Tk 루트 또는 부모 프레임
@@ -36,46 +36,40 @@ def open_sort_progress_page(root, dest_path):
         import asyncio
         import os
         
-        async def wait_for_copy_completion():
-            """비동기적으로 복사 완료를 기다림 (CSV 위치 기준 확인)"""
+        async def wait_for_copy_completion(dest_paths):
             log("폴더 복사 완료 확인 중...")
             
-            max_wait_time = 30  # 최대 30초 대기
+            max_wait_time = 30
             wait_time = 0
             
             while wait_time < max_wait_time:
-                if os.path.exists(dest_path):
-                    csv_folder = None
-                    for root, dirs, files in os.walk(dest_path):
-                        for file in files:
-                            if file.endswith(".csv"):
-                                csv_folder = root
-                                break
-                        if csv_folder:
-                            break
+                all_done = True
 
-                    if csv_folder:
-                        image_folder = os.path.join(csv_folder, "image")
-                        csv_file = next((os.path.join(csv_folder, f) for f in os.listdir(csv_folder) if f.endswith(".csv")), None)
-                        
-                        if os.path.exists(image_folder) and csv_file and os.path.exists(csv_file):
-                            log("폴더 복사 완료 확인됨!")
-                            return True
-                        else:
-                            log(f"파일 확인 중... ({wait_time}s)")
-                    else:
-                        log(f"CSV 파일을 찾는 중... ({wait_time}s)")
-                else:
-                    log(f"폴더 확인 중... ({wait_time}s)")
-                
+                for dest_path in dest_paths:
+                    if not os.path.exists(dest_path):
+                        log(f"폴더 확인 중... ({wait_time}s) - {dest_path}")
+                        all_done = False
+                        continue
+
+                    folder_name = os.path.basename(dest_path.rstrip("/\\"))
+                    csv_path = os.path.join(dest_path, f"{folder_name}.csv")
+                    image_path = os.path.join(dest_path, "image")
+
+                    if not (os.path.isfile(csv_path) and os.path.isdir(image_path)):
+                        log(f"파일 확인 중... ({wait_time}s) - {dest_path}")
+                        all_done = False
+
+                if all_done:
+                    log("모든 폴더 복사 완료 확인됨!")
+                    return True
+
                 await asyncio.sleep(1)
                 wait_time += 1
-            
+
             log("오류: 폴더 복사 완료를 확인할 수 없습니다.")
             return False
 
-
-        async def run_text_sorting():
+        async def run_text_sorting(dest_path):
             """텍스트 분류 실행"""
             log("텍스트 분류 시작...")
             try:
@@ -85,7 +79,7 @@ def open_sort_progress_page(root, dest_path):
             except Exception as e:
                 log(f"텍스트 분류 중 오류 발생: {str(e)}")
         
-        async def run_image_sorting():
+        async def run_image_sorting(dest_path):
             """이미지 분류 실행"""
             log("이미지 분류 시작...")
             try:
@@ -95,7 +89,7 @@ def open_sort_progress_page(root, dest_path):
             except Exception as e:
                 log(f"정렬 중 오류 발생: {str(e)}")
 
-        async def rename_sorted_folder():
+        async def rename_sorted_folder(dest_path):
             # 폴더의 마지막 부분(폴더명) 가져오기
             folder_name = os.path.basename(dest_path)
             
@@ -114,11 +108,12 @@ def open_sort_progress_page(root, dest_path):
             """메인 비동기 함수"""
             from module.page_modules.main_screen import open_main_screen
             home_btn.config(state="disabled")
-            if await wait_for_copy_completion():
-                await run_text_sorting()
-                await run_image_sorting()
-                await rename_sorted_folder()
-                home_btn.config(state="normal")
+            for dest_path in dest_paths:
+                if await wait_for_copy_completion(dest_path):
+                    await run_text_sorting(dest_path)
+                    await run_image_sorting(dest_path)
+                    await rename_sorted_folder(dest_path)
+            home_btn.config(state="normal")
         
         # 비동기 함수 실행
         asyncio.run(main())

@@ -13,89 +13,113 @@ class UploadManager:
     def validate_folder_structure(self, folder_path):
         """
         폴더 및 하위 폴더를 재귀적으로 탐색하여,
-        'image' 폴더와 CSV 파일이 존재하는지 확인
+        'image' 폴더와 CSV 파일이 존재하는 모든 폴더를 리스트로 반환
 
         Returns:
-            tuple: (bool, error_message)
+            tuple: (bool, list_of_valid_paths, error_message)
+                list_of_valid_paths: 유효한 image+CSV 폴더 경로 리스트
         """
         if not folder_path:
-            return False, "폴더 경로가 제공되지 않았습니다."
+            return False, [], "폴더 경로가 제공되지 않았습니다."
+
+        valid_paths = []
 
         def _recursive_check(current_path):
             folder_name = os.path.basename(current_path.rstrip("/\\"))
             image_folder_path = os.path.join(current_path, "image")
             csv_file_path = os.path.join(current_path, f"{folder_name}.csv")
 
-            # 유효한 폴더 발견 시 True 반환
+            # 유효한 폴더 발견 시 리스트에 추가
             if os.path.isdir(image_folder_path) and os.path.isfile(csv_file_path):
-                return True, None
+                valid_paths.append(current_path)
 
             # 하위 폴더 재귀 탐색
             try:
                 for entry in os.listdir(current_path):
                     full_path = os.path.join(current_path, entry)
                     if os.path.isdir(full_path):
-                        found, error = _recursive_check(full_path)
-                        if found:
-                            return True, None
+                        _recursive_check(full_path)
             except PermissionError:
-                return False, f"'{current_path}' 폴더를 열 수 없습니다."
+                pass  # 접근 불가 폴더는 무시
 
-            # 현재 폴더와 하위 폴더 모두 유효하지 않음
-            return False, f"'{current_path}' 폴더 또는 하위 폴더에 'image' 폴더와 CSV 파일이 없습니다."
+        _recursive_check(folder_path)
 
-        # 재귀 검사 시작
-        return _recursive_check(folder_path)
+        if valid_paths:
+            return True, valid_paths, None
+        else:
+            return False, [], f"'{folder_path}' 폴더 및 하위 폴더에 'image' 폴더와 CSV 파일이 없습니다."
 
     
-    def check_duplicate_folder(self, folder_path):
+    def check_duplicate_folders(self, folder_paths):
+        """
+        여러 폴더 경로 리스트를 받아, data_root 내 중복 여부 확인
 
-        folder_name = os.path.basename(folder_path.rstrip("/\\"))
-        
-        # 기본 폴더명으로 중복 확인
-        dest_path = os.path.join(self.data_root, folder_name)
-        if os.path.exists(dest_path):
-            return True, f"{folder_name} 폴더가 이미 존재합니다."
-        
-        # unsorted_ 접두사로 중복 확인
-        unsorted_dest_path = os.path.join(self.data_root, f"unsorted_{folder_name}")
-        if os.path.exists(unsorted_dest_path):
-            return True, f"unsorted_{folder_name} 폴더가 이미 존재합니다."
-        
-        return False, None
+        Args:
+            folder_paths (list): 유효한 폴더 경로 리스트
+
+        Returns:
+            tuple: (bool, list_of_duplicate_messages)
+                bool: 중복 폴더가 하나라도 있으면 True
+                list_of_duplicate_messages: 각 중복 폴더에 대한 메시지 리스트
+        """
+        duplicates = []
+
+        for folder_path in folder_paths:
+            folder_name = os.path.basename(folder_path.rstrip("/\\"))
+            
+            # 기본 폴더명 중복 확인
+            dest_path = os.path.join(self.data_root, folder_name)
+            if os.path.exists(dest_path):
+                duplicates.append(f"{folder_name} 폴더가 이미 존재합니다.")
+                continue
+            
+            # unsorted_ 접두사 중복 확인
+            unsorted_dest_path = os.path.join(self.data_root, f"unsorted_{folder_name}")
+            if os.path.exists(unsorted_dest_path):
+                duplicates.append(f"unsorted_{folder_name} 폴더가 이미 존재합니다.")
+
+        return (len(duplicates) > 0, duplicates)
+
     
     def upload_folder(self, source_folder_path):
-        # 1. 폴더 구조 검증
-        is_valid, error_msg = self.validate_folder_structure(source_folder_path)
+        """
+        소스 폴더 및 하위 폴더를 검사하여 유효한 폴더를
+        data_root로 복사. 여러 유효 폴더를 리스트 순회 처리.
+
+        Returns:
+            tuple: (bool, list_of_copied_paths, list_of_errors)
+        """
+        # 1. 폴더 구조 검증 (유효 폴더 리스트 반환)
+        is_valid, valid_folders, error_msg = self.validate_folder_structure(source_folder_path)
         if not is_valid:
-            return False, None, error_msg
+            return False, [], [error_msg]
 
-        # 2. CSV 위치 기반 dest_path 결정
-        folder_name = os.path.basename(source_folder_path.rstrip("/\\"))
-        csv_folder = None
-        for root, dirs, files in os.walk(source_folder_path):
-            for file in files:
-                if file.endswith(".csv"):
-                    csv_folder = root
-                    break
-            if csv_folder:
-                break
+        copied_paths = []
+        error_messages = []
 
-        if csv_folder == source_folder_path:
+        # 2. 중복 체크
+        is_dup, dup_messages = self.check_duplicate_folders(valid_folders)
+        if is_dup:
+            return False, [], dup_messages
+
+        # 3. 각 유효 폴더 복사
+        for folder_path in valid_folders:
+            folder_name = os.path.basename(folder_path.rstrip("/\\"))
             dest_path = os.path.join(self.data_root, f"unsorted_{folder_name}")
+
+            try:
+                shutil.copytree(folder_path, dest_path)
+                copied_paths.append(dest_path)
+                print("복사 완료:", dest_path)
+            except Exception as e:
+                error_messages.append(f"{folder_name} 복사 실패: {str(e)}")
+
+        # 4. 최종 결과 반환
+        if error_messages:
+            return False, copied_paths, error_messages
         else:
-            sub_folder_name = os.path.basename(csv_folder)
-            dest_path = os.path.join(self.data_root, folder_name, f"unsorted_{sub_folder_name}")
+            return True, copied_paths, None
 
-        # 3. 중복 확인 및 폴더 복사
-        is_duplicate, error_msg = self.check_duplicate_folder(dest_path)
-        if is_duplicate:
-            return False, None, error_msg
-
-        shutil.copytree(csv_folder, dest_path)
-
-        print("복사 완료:", dest_path)
-        return True, dest_path, None
 
 
     

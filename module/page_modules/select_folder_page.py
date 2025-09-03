@@ -3,10 +3,13 @@ from tkinter import ttk, messagebox
 import os
 from module.page_modules.edit_screen import open_edit_screen
 from util.path_utils import folder_to_csv_name
+from module.components.home_button import add_back_to_main_button
 
 def open_select_folder_page(root, data_path):
     frame = tk.Frame(root)
     frame.pack(fill="both", expand=True)
+
+    add_back_to_main_button(root, frame)
 
     tree = ttk.Treeview(frame)
     tree.pack(fill="both", expand=True)
@@ -21,17 +24,19 @@ def open_select_folder_page(root, data_path):
     def populate_tree(parent_node, parent_path):
         try:
             for name in os.listdir(parent_path):
-                for name in os.listdir(parent_path):
-                    if name.startswith("unsorted_"):
-                        continue
+                if name.startswith("unsorted_"):
+                    continue  # unsorted_ 폴더 건너뛰기
+
                 full_path = os.path.join(parent_path, name)
                 if os.path.isdir(full_path):
                     node = tree.insert(parent_node, "end", text=name, values=[full_path])
+                    
                     # 하위 폴더가 있으면 더미 노드 추가
                     if any(os.path.isdir(os.path.join(full_path, d)) for d in os.listdir(full_path)):
                         tree.insert(node, "end", text="dummy")
         except PermissionError:
             pass
+
 
     populate_tree(root_node, data_path)
 

@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from module.upload_module import UploadManager
 from module.page_modules.sort_progress_page import open_sort_progress_page
+from module.components.home_button import add_back_to_main_button
 
 def open_upload_folder_page(root):
     frame = tk.Frame(root)
@@ -38,18 +39,20 @@ def open_upload_folder_page(root):
             return
         
         # 업로드 매니저를 통한 업로드 실행
-        success, dest_path, error_message = upload_manager.upload_folder(folder_path)
+        success, dest_paths, error_message = upload_manager.upload_folder(folder_path)
         
         if success:
             # 업로드 성공
             selected_folder_var.set("")  # 입력창 초기화
             frame.pack_forget()  # 현재 페이지 숨김
-            open_sort_progress_page(root, dest_path)  # 정렬 페이지로 이동
+            open_sort_progress_page(root, dest_paths)  # 정렬 페이지로 이동
         else:
             # 업로드 실패 - 오류 메시지 표시
             messagebox.showerror("업로드 실패", error_message)
 
     upload_btn = tk.Button(frame, text="업로드", command=upload_folder)
     upload_btn.pack(pady=10)
+
+    add_back_to_main_button(root, frame)
 
     return frame
