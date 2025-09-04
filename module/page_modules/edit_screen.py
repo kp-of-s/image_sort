@@ -28,32 +28,37 @@ def open_edit_screen(folder_path, csv_file):
     win.geometry(f"{win_width}x{win_height}")
 
     # 레이아웃 설정
-    win.grid_columnconfigure(0, weight=1)
-    win.grid_columnconfigure(1, weight=3)
-    win.grid_columnconfigure(2, weight=1)
-    win.grid_rowconfigure(0, weight=3)
-    win.grid_rowconfigure(1, weight=1)
+    win.grid_columnconfigure(0, weight=0)  # 리스트 열은 고정
+    win.grid_columnconfigure(1, weight=1)  # 내용물 열은 확장
 
-    # 이미지 리스트
-    image_folder = os.path.join(folder_path, "image")
-    image_files = get_image_files(image_folder)
-
+    # 이미지 리스트 프레임 (왼쪽에 고정)
     list_frame = tk.Frame(win, bd=2, relief="solid")
-    list_frame.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=5, pady=5)
+    # grid를 사용하여 0행, 0열에 배치하고, 창 높이 전체를 차지하게 합니다.
+    list_frame.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
     img_listbox = tk.Listbox(list_frame, width=30)
     img_listbox.pack(fill="both", expand=True)
+    image_folder = os.path.join(folder_path, "image")
+    image_files = get_image_files(image_folder)
     for idx, f in enumerate(image_files):
         img_listbox.insert(tk.END, f"{idx+1}. {f}")
 
-    # 이미지 표시
-    img_frame = tk.Frame(win, bd=2, relief="solid")
-    img_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+    # 메인 콘텐츠 컨테이너 (오른쪽에 배치)
+    content_frame = tk.Frame(win)
+    # grid를 사용하여 0행, 1열에 배치하고, 창의 전체 공간을 차지하게 합니다.
+    content_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+    content_frame.grid_rowconfigure(0, weight=1) # 이 프레임 내부의 행 설정
+
+    # --- 이 아래부터는 content_frame 내부에 pack으로 수직 배치 ---
+
+    # 이미지 표시 프레임
+    img_frame = tk.Frame(content_frame, bd=2, relief="solid")
+    img_frame.pack(fill="both", expand=True)
     img_label = tk.Label(img_frame, text="이미지를 선택하세요")
     img_label.pack(fill="none", expand=False)
 
-    # 정보 표시
-    info_frame = tk.Frame(win, bd=2, relief="solid")
-    info_frame.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+    # 정보 표시 프레임
+    info_frame = tk.Frame(content_frame, bd=2, relief="solid")
+    info_frame.pack(fill="x", padx=5, pady=5)
     tk.Label(info_frame, text="선택 항목 정보", font=("Arial", 14, "bold")).pack(pady=10)
     type1_label = tk.Label(info_frame, text="type1: -", font=("Arial", 12))
     type1_label.pack(pady=5)
@@ -62,9 +67,9 @@ def open_edit_screen(folder_path, csv_file):
     address_label = tk.Label(info_frame, text="address: -", font=("Arial", 12))
     address_label.pack(pady=5)
 
-    # 버튼 영역
-    bottom_frame = tk.Frame(win, bd=2, relief="solid")
-    bottom_frame.grid(row=1, column=1, columnspan=2, sticky="nsew", padx=5, pady=5)
+    # 버튼 영역 프레임
+    bottom_frame = tk.Frame(content_frame, bd=2, relief="solid")
+    bottom_frame.pack(fill="x", padx=5, pady=5)
 
     # type1 / type2 버튼 컨테이너
     btn_frame = tk.Frame(bottom_frame)
