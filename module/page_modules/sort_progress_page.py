@@ -4,6 +4,7 @@ import threading
 import pandas as pd
 from module.image_sort_module import image_sorting
 from module.text_sort_module import text_sorting
+from module.category_sort_module import category_sorting
 from module.components.home_button import go_main
 from util.path_utils import get_config_path, folder_to_csv_name
 
@@ -99,6 +100,16 @@ def open_sort_progress_page(root, dest_paths):
                 log("텍스트 분류 완료!")
             except Exception as e:
                 log(f"텍스트 분류 중 오류 발생: {str(e)}")
+
+        async def run_category_sorting(dest_path):
+            """텍스트 분류 실행"""
+            log("텍스트 분류 시작...")
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, category_sorting, dest_path, log)
+                log("카테고리 분류 완료!")
+            except Exception as e:
+                log(f"카테고리 분류 중 오류 발생: {str(e)}")
         
         async def run_image_sorting(dest_path):
             """이미지 분류 실행"""
@@ -132,6 +143,7 @@ def open_sort_progress_page(root, dest_paths):
                 for dest_path in dest_paths:
                     await column_check(dest_path)
                     await run_text_sorting(dest_path)
+                    await run_category_sorting(dest_path)
                     # await run_image_sorting(dest_path)
                     await rename_sorted_folder(dest_path)
             home_btn.config(state="normal")
