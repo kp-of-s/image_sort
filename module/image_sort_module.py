@@ -25,9 +25,6 @@ with open(os.path.join(get_config_path(), "category_rayer.json"), 'r', encoding=
 
 def validate_and_update_image_categories(csv_path, input_folder):
     df = pd.read_csv(csv_path)
-    # type2 컬럼이 없으면 생성하고 NaN으로 초기화
-    if 'type2' not in df.columns:
-        df['type2'] = pd.NA
     # type2 컬럼을 문자열로 변환하되, NaN은 그대로 유지
     df["type2"] = df["type2"].astype('string')
 
@@ -35,13 +32,11 @@ def validate_and_update_image_categories(csv_path, input_folder):
         filename = row["image"]
 
         if pd.isna(filename) or not isinstance(filename, str) or filename.strip() == "":
-            # 이미지 없음: {filename}, 인덱스: {idx}
             df.at[idx, "type2"] = "missing_image"
             continue
 
         img_path = os.path.join(input_folder, filename)
         if not os.path.isfile(img_path):
-            # {img_path} 파일이 존재하지 않습니다.
             df.at[idx, "type2"] = "file_not_found"
             continue
 
@@ -62,13 +57,10 @@ import unicodedata
 
 def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=print):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # model, preprocess = clip.load("ViT-L/14", device=device)
-    model, preprocess = clip.load("ViT-B/32", device=device)
+    model, preprocess = clip.load("ViT-L/14", device=device)
+    # model, preprocess = clip.load("ViT-B/32", device=device)
 
-    # 분류 모델 로드 및 시작
-
-    categories_item = categories[1:]
-    # categories_item
+    classific_column, categories_item = categories[0], categories[1:]
 
     text_tokens = clip.tokenize(categories_item).to(device)
     with torch.no_grad():
@@ -77,29 +69,22 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
 
     CONFIDENCE_THRESHOLD = 0.25
 
-    # 기존 CSV 불러오기
     df = pd.read_csv(csv_path, na_values=["Nan", "nan", "NaN", "미분류"])
-    # print(df.columns)
 
     # 첫 번째 분류에서는 모든 NaN 값들을 대상으로 함
-    if categories[0] == "NaN":
+    if classific_column == "NaN":
         target_condition = df['type2'].isna()
     else:
-        target_condition = (df['type2'] == categories[0]) | (df['type2'].isna())
+        target_condition = (df['type2'] == classific_column) | (df['type2'].isna())
     
     target_filenames = set(
       unicodedata.normalize('NFC', str(name))
       for name in df[target_condition]["image"]
     )
     log_func(f"대상 이미지 수: {len(target_filenames)}")
-    log_func(f"분류 조건: {categories[0]}")
-    log_func(f"CSV의 type2 컬럼 고유값: {df['type2'].unique()}")
-    log_func(f"분류할 이미지 개수: {df['type2'].isna().sum()}")
-    # print(target_filenames)
+    log_func(f"분류 조건: {classific_column}인 경우")
 
     results = []
-
-    # print(repr(target_filenames))
 
     log_func("모델 분류 시작")
 
@@ -109,7 +94,6 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
         sys.stderr = open(os.devnull, 'w')
 
     for filename in tqdm(os.listdir(input_folder), file=sys.stdout):
-        # print(repr(filename))
         filename = unicodedata.normalize('NFC', filename.strip())
         if filename not in target_filenames:
             continue
@@ -128,10 +112,9 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
                     # 확인
                     results.append({'image': filename, 'type2': '미분류'})
                 else:
-                    category = categories[top_index.item()]
+                    category = categories_item[top_index.item()]
                     results.append({'image': filename, 'type2': category})
         except Exception as e:
-            # Skipping file: {filename} due to error: {e}
             results.append({'image': filename, 'type2': '미분류'})
 
     log_func("모델 분류 완료, 결과 저장 중")
@@ -179,18 +162,18 @@ def category_to_csv_category(csv_path):
 """메인 셀. 추가할 내용은 상단에 함수형으로 셀 추가, 메인 셀에서 실행."""
 def image_sorting(folder_path, log_func=print):
     base_dir = folder_path
-    input_folder = os.path.join(base_dir, 'image')
+    images_folder = os.path.join(base_dir, 'images')
     csv_path = os.path.join(base_dir, folder_to_csv_name(base_dir))
 
     log_func("이미지 분류 시작...")
-    validate_and_update_image_categories(csv_path, input_folder)
+    validate_and_update_image_categories(csv_path, images_folder)
 
     log_func(f"분류 단계: {len(category_rayer)}개")
     for i, categories in enumerate(category_rayer, 1):
         log_func(f"분류 단계 {i}/{len(category_rayer)}: {categories[0]} 시작")
-        extract_numbers_from_filenames(csv_path, input_folder, categories, log_func)
+        extract_numbers_from_filenames(csv_path, images_folder, categories, log_func)
 
     log_func("최종 카테고리 변환 중...")
     category_to_csv_category(csv_path)
 
-    log_func("모델 분류 완료!")
+    log_func("모델 분류 완료")

@@ -29,10 +29,11 @@ def bind_image_selection(img_listbox, image_files, image_folder, img_label, df,
             type2 = row.iloc[0].get('type2', '-')
             adrass = row.iloc[0].get('address', '-')
         else:
-            type1, type2, adrass = '-', '-'
+            type1, type2, adrass = '-', '-', '-'
 
         type1_label.config(text=f"type1: {type1}")
         type2_label.config(text=f"type2: {type2}")
+        address_label.config(text=f"Address: {adrass}")
 
     def move_to_next_image(event=None):
         selected_idx = img_listbox.curselection()
