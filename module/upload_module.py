@@ -24,7 +24,7 @@ class UploadManager:
                 current_path = os.path.join(folder_path, entry)
                 if os.path.isdir(current_path):
                     folder_name = os.path.basename(current_path.rstrip("/\\"))
-                    image_folder = os.path.join(current_path, "image")
+                    image_folder = os.path.join(current_path, "images")
                     csv_file = os.path.join(current_path, f"{folder_name}.csv")
 
                     if not (os.path.isdir(image_folder) and os.path.isfile(csv_file)):
@@ -87,6 +87,7 @@ class UploadManager:
         
         # 1. csv가 담긴 폴더의 구조 검증
         invalid_folders = self.validate_folder_structure(source_folder_path)
+        print(f"Invalid folders: {invalid_folders}")
         if invalid_folders:
             messagebox.showwarning(
                 title="폴더 구조 경고",
