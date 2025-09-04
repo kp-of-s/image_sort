@@ -64,11 +64,3 @@ def open_select_folder_page(root, data_path):
     tree.bind("<<TreeviewSelect>>", on_select)
 
     return frame
-
-# 실행 예시
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("CSV 탐색기")
-    root.geometry("600x400")
-    open_select_folder_page(root, "C:/your/data/path")  # 데이터 폴더 경로
-    root.mainloop()

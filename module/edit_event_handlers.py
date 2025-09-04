@@ -1,7 +1,9 @@
 import os
 import tkinter as tk
 from PIL import Image, ImageTk
+
 from util.csv_utils import save_csv
+from module.db_uploader import execute_db_upload
 
 def bind_image_selection(img_listbox, image_files, image_folder, img_label, df,
                          screen_width, screen_height, selected_image, type1_label, type2_label, address_label):
@@ -106,3 +108,17 @@ def update_type(df, selected_image, column_name, new_value,
         current_row = df.loc[idx[0]]
         type1_label.config(text=f"type1: {current_row.get('type1', '-')}")
         type2_label.config(text=f"type2: {current_row.get('type2', '-')}")
+
+def handle_DB_upload(csv_file):
+    if tk.messagebox.askyesno("확인", "정말로 DB에 업로드하시겠습니까?"):
+        try:
+            # result = execute_db_upload(csv_file)
+            result = None
+            print("업로드 실행")
+            
+            if result:
+                tk.messagebox.showerror("업로드 실패", result)
+            else:
+                tk.messagebox.showinfo("완료", "DB 업로드가 완료되었습니다.")
+        except Exception as e:
+            tk.messagebox.showerror("치명적인 오류", f"DB 업로드 중 예기치 않은 오류가 발생했습니다: {e}")

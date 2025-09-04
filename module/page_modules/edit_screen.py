@@ -5,16 +5,19 @@ from util.csv_utils import load_csv
 from util.image_utils import get_image_files
 from util.options_utils import load_options
 import keyboard
-from module.event_handlers import (
+from module.edit_event_handlers import (
     bind_image_selection,
-    bind_type1_buttons
+    bind_type1_buttons,
+    handle_DB_upload
 )
 
-def open_edit_screen(folder_path, csv_file):
+def open_edit_screen(folder_path, csv_file_name):
     """편집 화면 생성"""
 
+    csv_file = os.path.join(folder_path, csv_file_name)
+
     # 데이터 로드
-    df = load_csv(folder_path, csv_file)
+    df = load_csv(folder_path, csv_file_name)
     options = load_options()
 
     # 윈도우 생성
@@ -33,11 +36,11 @@ def open_edit_screen(folder_path, csv_file):
 
     # 이미지 리스트 프레임 (왼쪽에 고정)
     list_frame = tk.Frame(win, bd=2, relief="solid")
-    # grid를 사용하여 0행, 0열에 배치하고, 창 높이 전체를 차지하게 합니다.
-    list_frame.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
+    # grid를 사용하여 0행, 0열에 배치하고, 2개 행에 걸쳐 전체 높이를 차지하게 합니다.
+    list_frame.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=5, pady=5)
     img_listbox = tk.Listbox(list_frame, width=30)
     img_listbox.pack(fill="both", expand=True)
-    image_folder = os.path.join(folder_path, "image")
+    image_folder = os.path.join(folder_path, "images")
     image_files = get_image_files(image_folder)
     for idx, f in enumerate(image_files):
         img_listbox.insert(tk.END, f"{idx+1}. {f}")
@@ -95,5 +98,13 @@ def open_edit_screen(folder_path, csv_file):
     bind_type1_buttons(
         options, type1_frame, type2_frame,
         df, selected_image, type1_label, type2_label,
-        folder_path, csv_file
+        folder_path, csv_file_name
     )
+
+     # 데이터베이스 업로드 버튼 프레임
+    upload_button_frame = tk.Frame(bottom_frame, pady=10)
+    upload_button_frame.pack(side="bottom", fill="x")
+
+    # 업로드 버튼
+    save_button = tk.Button(upload_button_frame, text="데이터베이스에 업로드", command=lambda: handle_DB_upload(csv_file))
+    save_button.pack(padx=10, pady=5)

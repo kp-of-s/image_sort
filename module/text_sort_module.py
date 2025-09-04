@@ -75,15 +75,25 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
 
     # 분류 결과를 기존 csv_in 파일에 덮어쓰기
     cat1_list, cat2_list, matched = [], [], []
+    auto_sort_rows = []  # 새로 추가된 리스트
+
     for _, row in df_nan.iterrows():
         c1, c2, lb = classify_row(row, rules)
         cat1_list.append(c1)
         cat2_list.append(c2)
         matched.append(lb)
 
+        # 'autoSortRow' 로직 추가
+        # 텍스트 분류가 '미분류'가 아닌 경우에만 'true'로 설정
+        if c2 != '미분류':
+            auto_sort_rows.append('true')
+        else:
+            auto_sort_rows.append('') # 또는 다른 기본값 설정
+    
     # 기존 데이터프레임에 분류된 값 추가
-    df["type1"] = cat1_list
-    df["type2"] = cat2_list
+    df.loc[df['type2'].isna(), "type1"] = cat1_list
+    df.loc[df['type2'].isna(), "type2"] = cat2_list
+    df.loc[df['type2'].isna(), "autoSortRow"] = auto_sort_rows # autoSortRow 컬럼 추가
 
     # csv_in 파일에 덮어쓰기 (기존 파일을 수정)
     df.to_csv(csv_in, index=False, encoding="utf-8-sig")

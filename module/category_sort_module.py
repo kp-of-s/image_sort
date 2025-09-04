@@ -37,7 +37,7 @@ def apply_category_mapping(df, log_func=print):
 
     for index, row in df.iterrows():
         combined_text = ' '.join(
-            str(row[col]) for col in ['ca1', 'ca2', 'ca3'] if pd.notna(row[col])
+            str(row[col]) for col in ['category1', 'category2', 'category3'] if pd.notna(row[col])
         )
         
         found_category = None
@@ -53,8 +53,9 @@ def apply_category_mapping(df, log_func=print):
         # 매칭되는 키워드가 있으면 새로운 DataFrame에 추가
         if found_category:
             new_row = pd.DataFrame(
-                [{'name': row['name'], 'type2': found_category}]
+                [{'name': row['name'], 'type2': found_category, 'autoSortRow': 'true'}]
             )
+            print(new_row)
             new_df = pd.concat([new_df, new_row], ignore_index=True)
 
     return new_df

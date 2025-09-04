@@ -113,7 +113,7 @@ def extract_numbers_from_filenames(csv_path, input_folder, categories, log_func=
                     results.append({'image': filename, 'type2': '미분류'})
                 else:
                     category = categories_item[top_index.item()]
-                    results.append({'image': filename, 'type2': category})
+                    results.append({'image': filename, 'type2': category, 'autoSortRow': 'true'})
         except Exception as e:
             results.append({'image': filename, 'type2': '미분류'})
 
