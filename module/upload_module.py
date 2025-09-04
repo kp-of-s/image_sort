@@ -80,14 +80,11 @@ class UploadManager:
                     # parent_folder 기준 상대 경로 생성
                     rel_path = os.path.relpath(root, start=parent_dir)
                     folders_with_csv.append(rel_path)
-
-            print(f"Folders with CSV (유효한 폴더만): {folders_with_csv}")
             return folders_with_csv
 
         
         # 1. csv가 담긴 폴더의 구조 검증
         invalid_folders = self.validate_folder_structure(source_folder_path)
-        print(f"Invalid folders: {invalid_folders}")
         if invalid_folders:
             messagebox.showwarning(
                 title="폴더 구조 경고",
@@ -112,10 +109,9 @@ class UploadManager:
             # 필요시 중간 폴더까지 생성
             os.makedirs(os.path.dirname(dest_folder_path), exist_ok=True)
 
-            print(f"Copying {folder_path} → {dest_folder_path}")
-
             try:
                 shutil.copytree(folder_path, dest_folder_path)
+                copied_paths.append(dest_folder_path)
             except Exception as e:
                 error_messages.append(f"{folder_name} 복사 실패: {str(e)}")
 

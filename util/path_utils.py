@@ -37,8 +37,11 @@ def folder_to_csv_name(folder_path):
     unsorted_ 접두사가 있으면 제거
     예: 'data/unsorted_선택한폴더명' → '선택한폴더명.csv'
     """
-    folder_name = os.path.basename(folder_path.rstrip("/\\"))
+    folder_name_with_prefix = os.path.basename(folder_path.rstrip("/\\"))
     # unsorted_ 접두사 제거
-    if folder_name.startswith("unsorted_"):
-        folder_name = folder_name[9:]  # "unsorted_" (9글자) 제거
+    # 언더바('_') 뒤의 문자열만 추출
+    if "_" in folder_name_with_prefix:
+        folder_name = folder_name_with_prefix.split("_", 1)[1]
+    else:
+        folder_name = folder_name_with_prefix
     return f"{folder_name}.csv"
