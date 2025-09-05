@@ -53,7 +53,6 @@ def open_sort_progress_page(root, dest_paths):
                     image_path = os.path.join(dest_path, "images")
 
                     if not (os.path.isfile(csv_path) and os.path.isdir(image_path)):
-                        log(f"파일 확인 중... ({wait_time}s) - {dest_path}")
                         all_done = False
 
                 if all_done:
@@ -67,11 +66,12 @@ def open_sort_progress_page(root, dest_paths):
             return False
         
         async def column_check(dest_path):
-            log("CSV 열 검사 중...")
             try:
+                file_name = folder_to_csv_name(dest_path)
+                log(f"{file_name} 열 검사 중...")
                  # 파일 경로
                 csv_column_check = os.path.join(get_config_path(), "csv_column_check.txt")
-                csv_file_path = os.path.join(dest_path, folder_to_csv_name(dest_path))
+                csv_file_path = os.path.join(dest_path, file_name)
                 df = pd.read_csv(csv_file_path, encoding="utf-8-sig")
                 column_list = []
                 with open(csv_column_check, "r", encoding="utf-8") as f:

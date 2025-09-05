@@ -5,7 +5,7 @@ from PIL import Image
 from tqdm import tqdm
 import sys
 import pandas as pd
-from util.path_utils import get_data_root, folder_to_csv_name, get_config_path
+from util.path_utils import folder_to_csv_name, get_config_path
 import json
 
 

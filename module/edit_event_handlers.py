@@ -6,7 +6,7 @@ from util.csv_utils import save_csv
 from module.db_uploader import execute_db_upload
 
 def bind_image_selection(img_listbox, image_files, image_folder, img_label, df,
-                         screen_width, screen_height, selected_image, type1_label, type2_label, address_label):
+                         screen_width, screen_height, selected_image, type1_label, type2_label, address_label, name_label):
     def show_selected_image(event=None):
         if not img_listbox.curselection():
             return
@@ -27,12 +27,14 @@ def bind_image_selection(img_listbox, image_files, image_folder, img_label, df,
         # 데이터에서 해당 이미지 행 찾기
         row = df[df['image'] == img_name]
         if not row.empty:
+            name = row.iloc[0].get('name', '-')
             type1 = row.iloc[0].get('type1', '-')
             type2 = row.iloc[0].get('type2', '-')
             adrass = row.iloc[0].get('address', '-')
         else:
-            type1, type2, adrass = '-', '-', '-'
+            type1, type2, adrass, name = '-', '-', '-'
 
+        name_label.config(text=f"name: {name}")
         type1_label.config(text=f"type1: {type1}")
         type2_label.config(text=f"type2: {type2}")
         address_label.config(text=f"Address: {adrass}")
@@ -109,12 +111,25 @@ def update_type(df, selected_image, column_name, new_value,
         type1_label.config(text=f"type1: {current_row.get('type1', '-')}")
         type2_label.config(text=f"type2: {current_row.get('type2', '-')}")
 
+def bind_unclassified_button(
+        df, selected_image, type1_label, type2_label, folder_path, csv_file, Unclassified_frame
+    ):
+    def on_click():
+        update_type(df, selected_image, "type1", "미분류",
+                    type1_label, type2_label, folder_path, csv_file)
+        update_type(df, selected_image, "type2", "미분류",
+                    type1_label, type2_label, folder_path, csv_file)
+        
+    btn = tk.Button(Unclassified_frame, text="미분류", width=10, command=on_click)
+
+    btn.pack(pady=2)
+
 def handle_DB_upload(csv_file):
     if tk.messagebox.askyesno("확인", "정말로 DB에 업로드하시겠습니까?"):
         try:
-            # result = execute_db_upload(csv_file)
-            result = None
-            print("업로드 실행")
+            result = execute_db_upload(csv_file)
+            # result = None
+            # print("업로드 실행")
             
             if result:
                 tk.messagebox.showerror("업로드 실패", result)

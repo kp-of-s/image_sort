@@ -37,18 +37,21 @@ def open_upload_folder_page(root):
         if not folder_path:
             messagebox.showwarning("폴더 선택 필요", "업로드할 폴더를 선택하세요")
             return
-        
-        # 업로드 매니저를 통한 업로드 실행
-        success, dest_paths, error_message = upload_manager.upload_folder(folder_path)
-        
-        if success:
+        try:
+            # 업로드 매니저를 통한 업로드 실행
+            dest_paths, error_messages = upload_manager.upload_folder(folder_path)
             # 업로드 성공
             selected_folder_var.set("")  # 입력창 초기화
+            if error_messages:
+                messagebox.showinfo(
+                    title="업로드 불가",
+                    message="업로드 되지 않은 폴더가 있습니다\n\n" + "\n".join(map(str, error_messages))
+                )
             frame.pack_forget()  # 현재 페이지 숨김
             open_sort_progress_page(root, dest_paths)  # 정렬 페이지로 이동
-        else:
+        except Exception:
             # 업로드 실패 - 오류 메시지 표시
-            messagebox.showerror("업로드 실패", error_message)
+            messagebox.showerror("업로드 실패")
 
     upload_btn = tk.Button(frame, text="업로드", command=upload_folder)
     upload_btn.pack(pady=10)

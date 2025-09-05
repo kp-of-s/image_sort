@@ -8,6 +8,7 @@ import keyboard
 from module.edit_event_handlers import (
     bind_image_selection,
     bind_type1_buttons,
+    bind_unclassified_button,
     handle_DB_upload
 )
 
@@ -63,6 +64,8 @@ def open_edit_screen(folder_path, csv_file_name):
     info_frame = tk.Frame(content_frame, bd=2, relief="solid")
     info_frame.pack(fill="x", padx=5, pady=5)
     tk.Label(info_frame, text="선택 항목 정보", font=("Arial", 14, "bold")).pack(pady=10)
+    name_label = tk.Label(info_frame, text="name: -", font=("Arial", 12))
+    name_label.pack(pady=5)
     type1_label = tk.Label(info_frame, text="type1: -", font=("Arial", 12))
     type1_label.pack(pady=5)
     type2_label = tk.Label(info_frame, text="type2: -", font=("Arial", 12))
@@ -74,14 +77,17 @@ def open_edit_screen(folder_path, csv_file_name):
     bottom_frame = tk.Frame(content_frame, bd=2, relief="solid")
     bottom_frame.pack(fill="x", padx=5, pady=5)
 
-    # type1 / type2 버튼 컨테이너
+    # 버튼 컨테이너
     btn_frame = tk.Frame(bottom_frame)
     btn_frame.pack(pady=10)
     type1_frame = tk.Frame(btn_frame)
     type1_frame.pack(side="left", padx=10)
     type2_frame = tk.Frame(btn_frame)
     type2_frame.pack(side="left", padx=10)
+    Unclassified_frame = tk.Frame(btn_frame)
+    Unclassified_frame.pack(side="left", padx=10)
 
+    tk.Label(Unclassified_frame, text="미분류", font=("Arial", 10, "bold")).pack()
     tk.Label(type1_frame, text="Type1 선택:", font=("Arial", 10, "bold")).pack()
     tk.Label(type2_frame, text="Type2 선택:", font=("Arial", 10, "bold")).pack()
 
@@ -92,13 +98,18 @@ def open_edit_screen(folder_path, csv_file_name):
     bind_image_selection(
         img_listbox, image_files, image_folder, img_label,
         df, screen_width, screen_height, selected_image,
-        type1_label, type2_label, address_label
+        type1_label, type2_label, address_label, name_label
     )
 
     bind_type1_buttons(
         options, type1_frame, type2_frame,
         df, selected_image, type1_label, type2_label,
         folder_path, csv_file_name
+    )
+
+    bind_unclassified_button(
+        df, selected_image, type1_label, type2_label,
+        folder_path, csv_file_name, Unclassified_frame
     )
 
      # 데이터베이스 업로드 버튼 프레임

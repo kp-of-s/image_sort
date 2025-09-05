@@ -21,3 +21,12 @@ def save_csv(df, folder_name, csv_file):
         os.makedirs(folder_path, exist_ok=True)  # 폴더 없으면 생성
         file_path = os.path.join(folder_path, csv_file)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
+
+def keep_columns_from_csv(
+    csvfile: str, columns: list[str], output: str
+) -> pd.DataFrame:
+    df = pd.read_csv(csvfile)
+    
+    df = df[columns]
+    
+    df.to_csv(output, index=False)

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_schema(schema_path: str) -> dict:
-    with open(schema_path, encoding="utf-8") as f:
+    with open(schema_path, encoding="utf-8-sig") as f:
         return json.load(f)
 
 
@@ -49,7 +49,7 @@ def validate_row(row, schema):
 def process_csv(csv_file: str, schema: dict) -> tuple[list, list]:
     valid_rows: list[dict] = []
     errors: list[dict] = []
-    with open(csv_file, newline="", encoding="utf-8") as f:
+    with open(csv_file, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for i, row in enumerate(reader, start=2):
             row = convert_field_types(row)
@@ -58,10 +58,18 @@ def process_csv(csv_file: str, schema: dict) -> tuple[list, list]:
                 valid_rows.append(row)
             else:
                 errors.append({"row": i, "error": error})
-                logger.error(f"Validation error in row {i}: {error}")
+
     logger.info(
         f"CSV processing complete: {len(valid_rows)} valid rows, {len(errors)} errors."
     )
+
+    if errors:
+        error_file = "validation_errors.log"
+        with open(error_file, "w", encoding="utf-8") as ef:
+            for err in errors:
+                ef.write(f"Row {err['row']}: {err['error']}\n")
+        logger.warning(f"Validation errors logged to {error_file}")
+
     return valid_rows, errors
 
 
@@ -94,6 +102,15 @@ def insert_to_database(supabase: Client, schema: str, table: str, rows: list[dic
 # def main(csv_file: str, schema_path: str):
 def execute_db_upload(csv_file: str):
     try:
+        from util.csv_utils import keep_columns_from_csv
+
+        # DB 업로드 전 이미지 칼람 삭제
+        keep_columns_from_csv(
+            csv_file,
+            ["city", "district", "name", "address", "type1", "type2", "lon", "lat"],
+            csv_file,
+        )
+
         schema_path = os.path.join(get_config_path(), 'parking_lot.schema.json')
         schema = load_schema(schema_path)
         valid_rows, errors = process_csv(csv_file, schema)

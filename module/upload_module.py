@@ -2,120 +2,88 @@
 import os
 import shutil
 from tkinter import messagebox
-from util.path_utils import get_data_root
+
+from util.path_utils import get_data_root, folder_to_csv_name
 
 class UploadManager:
-    """폴더 업로드 관련 비즈니스 로직을 담당하는 클래스"""
-    
-    def __init__(self):
-        self.data_root = get_data_root()
-    
-    import os
+# 폴더 업로드 관련 비즈니스 로직을 담당하는 클래스
 
-    def validate_folder_structure(self, folder_path):
+    def validate_subfolder(self, subfolder):
         """폴더 구조 검증: image 폴더 및 csv 파일 존재 여부 확인"""
-        if not folder_path:
-            return []
+        images_folder_path = os.path.join(subfolder, 'images')
 
-        invalid_folders = []
+        csv_file_name = folder_to_csv_name(subfolder)
+        csv_file_path = os.path.join(subfolder, csv_file_name)
 
-        try:
-            for entry in os.listdir(folder_path):
-                current_path = os.path.join(folder_path, entry)
-                if os.path.isdir(current_path):
-                    folder_name = os.path.basename(current_path.rstrip("/\\"))
-                    image_folder = os.path.join(current_path, "images")
-                    csv_file = os.path.join(current_path, f"{folder_name}.csv")
-
-                    if not (os.path.isdir(image_folder) and os.path.isfile(csv_file)):
-                        invalid_folders.append(folder_name)
-
-        except PermissionError:
-            invalid_folders.append(os.path.basename(folder_path.rstrip("/\\")))
-
-        return invalid_folders
-
+        return os.path.isdir(images_folder_path) and os.path.isfile(csv_file_path)
     
-    def check_duplicate_folders(self, folder_path):
+    def get_all_subfolders(self, source_folder_path):
+        """원본 경로 및 복사할 경로 반환"""
+        origin_folder_paths = []
+        dest_paths = []
+
+        source_folder_name = os.path.basename(source_folder_path.rstrip("/\\")) # 선택한 폴더명
+
+        for root, dirs, files in os.walk(source_folder_path):
+            dirs[:] = [d for d in dirs if d != 'images']
+            for d in dirs:
+                full_path = os.path.join(root, d)
+                #검증
+                if not self.validate_subfolder(full_path):
+                    continue
+
+                origin_folder_paths.append(full_path)
+
+                relative_root = root.split(source_folder_name, 1)[1].lstrip("/\\")
+                path_from_selected = os.path.join(source_folder_name, relative_root, d)
+                dest_paths.append(os.path.join(get_data_root(), path_from_selected))
+
+
+        return origin_folder_paths, dest_paths
+
+    def is_duplicate(self, folder_path):
         """기본 폴더명 및 unsorted_ 접두사 폴더명 중복 검사"""
-        duplicates = []
-
-        rel_path = os.path.relpath(folder_path, start=os.path.dirname(self.data_root))
-
         # 기본 폴더명 중복 확인
-        dest_path = os.path.join(self.data_root, rel_path)
-        if os.path.exists(dest_path):
-            duplicates.append(f"{rel_path} 경로가 이미 존재합니다.")
-
         # unsorted_ 접두사 중복 확인
-        parts = rel_path.split(os.sep)
-        parts[-1] = f"unsorted_{parts[-1]}"   # 마지막 폴더명만 변경
-        unsorted_rel_path = os.path.join(*parts)
-        unsorted_dest_path = os.path.join(self.data_root, unsorted_rel_path)
-        if os.path.exists(unsorted_dest_path):
-            duplicates.append(f"{unsorted_rel_path} 경로가 이미 존재합니다.")
+        parts = folder_path.split(os.sep)
+        parts[-1] = f"unsorted_{parts[-1]}"
+        unsorted_dest_paths = os.sep.join(parts)
+        return os.path.exists(folder_path) or os.path.exists(unsorted_dest_paths)
+    
+    def copy_to_data_folder(self, full_folder_path, dest_path):
+        # 자동분류가 완료되지 않은 폴더 표시, 수동 분류 불가하도록.
+       
+        parent = os.path.dirname(dest_path)
+        last = os.path.basename(dest_path)
+        unsorted_dest_path = os.path.join(parent, f"unsorted_{last}")
 
-        return (len(duplicates) > 0, duplicates)
+        shutil.copytree(full_folder_path, unsorted_dest_path)
+        return unsorted_dest_path
 
 
     def upload_folder(self, source_folder_path):
+        full_folder_paths, dest_paths = self.get_all_subfolders(source_folder_path)
 
-        import os
-
-        def make_dest_path(source_folder_path, invalid_folders):
-            folders_with_csv = []
-
-            parent_dir = os.path.dirname(source_folder_path)
-
-            for root, dirs, files in os.walk(source_folder_path):
-                # CSV 파일이 있는지 확인
-                if any(file.lower().endswith(".csv") for file in files):
-                    # 최하위 폴더명
-                    folder_name = os.path.basename(root.rstrip("/\\"))
-
-                    # 유효하지 않은 폴더는 제외
-                    if folder_name in invalid_folders:
-                        continue
-
-                    # parent_folder 기준 상대 경로 생성
-                    rel_path = os.path.relpath(root, start=parent_dir)
-                    folders_with_csv.append(rel_path)
-            return folders_with_csv
-
-        
-        # 1. csv가 담긴 폴더의 구조 검증
-        invalid_folders = self.validate_folder_structure(source_folder_path)
-        if invalid_folders:
-            messagebox.showwarning(
-                title="폴더 구조 경고",
-                message="폴더가 바르지 못한 구조입니다."
-            )
-
-        dest_paths = make_dest_path(source_folder_path, invalid_folders)
-        error_messages = []
         copied_paths = []
+        error_messages = []
 
-        for rel_path in dest_paths:
-            folder_path = os.path.join(os.path.dirname(source_folder_path), rel_path)
-            folder_name = os.path.basename(folder_path.rstrip("/\\"))
+        for full_folder_path, dest_path in zip (full_folder_paths, dest_paths):
+            # 필요한 파일/폴더 검증
+            if not self.validate_subfolder(full_folder_path):
+                error_messages.append(f"필요한 파일/폴더 없음: {full_folder_path}")
+                continue
 
-            intermediate_path = os.path.dirname(rel_path)
+            # 중복 체크
+            if self.is_duplicate(dest_path):
+                error_messages.append(f"중복 폴더: {dest_path}")
+                continue
 
-            new_folder_name = f"unsorted_{folder_name}"
-
-            # 목적지 경로 생성
-            dest_folder_path = os.path.join(self.data_root, intermediate_path, new_folder_name)
-
-            # 필요시 중간 폴더까지 생성
-            os.makedirs(os.path.dirname(dest_folder_path), exist_ok=True)
-
+            # data 폴더로 복사
             try:
-                shutil.copytree(folder_path, dest_folder_path)
-                copied_paths.append(dest_folder_path)
+                unsorted_dest_path = self.copy_to_data_folder(full_folder_path, dest_path)
+                copied_paths.append(unsorted_dest_path)
             except Exception as e:
-                error_messages.append(f"{folder_name} 복사 실패: {str(e)}")
+                error_messages.append(f"복사 실패: {full_folder_path} - {str(e)}")
 
 
-        success = len(error_messages) == 0
-
-        return success, copied_paths, error_messages
+        return copied_paths, error_messages
