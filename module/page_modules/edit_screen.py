@@ -1,14 +1,13 @@
 import os
 import tkinter as tk
-from tkinter import ttk
 from util.csv_utils import load_csv
-from util.image_utils import get_image_files
 from util.options_utils import load_options
-import keyboard
+import pandas as pd
 from module.edit_event_handlers import (
     bind_image_selection,
     bind_type1_buttons,
     bind_unclassified_button,
+    copy_current_row,
     handle_DB_upload
 )
 
@@ -42,7 +41,11 @@ def open_edit_screen(folder_path, csv_file_name):
     img_listbox = tk.Listbox(list_frame, width=30)
     img_listbox.pack(fill="both", expand=True)
     image_folder = os.path.join(folder_path, "images")
-    image_files = get_image_files(image_folder)
+    df_sorted = df.sort_values(["address", "name"]).reset_index(drop=True)
+    image_files = [
+        str(img) for img in df_sorted["image"].tolist()
+        if pd.notna(img) and os.path.exists(os.path.join(image_folder, str(img)))
+    ]
     for idx, f in enumerate(image_files):
         img_listbox.insert(tk.END, f"{idx+1}. {f}")
 
@@ -115,6 +118,11 @@ def open_edit_screen(folder_path, csv_file_name):
      # 데이터베이스 업로드 버튼 프레임
     upload_button_frame = tk.Frame(bottom_frame, pady=10)
     upload_button_frame.pack(side="bottom", fill="x")
+
+    # 칼럼 복사 버튼 추가
+    copy_button = tk.Button(upload_button_frame, text="선택 항목 추가",
+                        command=lambda: copy_current_row(df, selected_image, folder_path, csv_file_name, img_listbox, image_files))
+    copy_button.pack(side="left", padx=10, pady=5)
 
     # 업로드 버튼
     save_button = tk.Button(upload_button_frame, text="데이터베이스에 업로드", command=lambda: handle_DB_upload(csv_file))

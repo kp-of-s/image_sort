@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+import pandas as pd
 from PIL import Image, ImageTk
 
 from util.csv_utils import save_csv
@@ -123,6 +124,61 @@ def bind_unclassified_button(
     btn = tk.Button(Unclassified_frame, text="미분류", width=10, command=on_click)
 
     btn.pack(pady=2)
+
+
+def copy_current_row(self, df, selected_image, folder_path, csv_file_name, img_listbox, image_files):
+    """
+    현재 선택된 행의 데이터를 CSV 마지막 줄에 추가하고 이미지 리스트를 갱신합니다.
+    """
+    if not selected_image[0]:
+        tk.messagebox.showwarning("경고", "먼저 이미지를 선택해주세요.")
+        return
+
+    img_name = selected_image[0]
+    row = df[df['image'] == img_name]
+
+    if not row.empty:
+        # 현재 선택된 행의 데이터를 추출
+        row_to_add = row.iloc[0].copy()
+        
+        # 새로운 행으로 추가
+        df.loc[len(df)] = row_to_add
+        
+        # CSV 파일에 저장
+        save_csv(df, folder_path, csv_file_name)
+        
+        # 이미지 리스트 갱신
+        img_listbox.delete(0, tk.END)
+        df_sorted = df.sort_values(["address", "name"]).reset_index(drop=True)
+        image_files.clear()
+        new_image_files = [
+            str(img) for img in df_sorted["image"].tolist()
+            if pd.notna(img) and os.path.exists(os.path.join(folder_path, "images", str(img)))
+        ]
+        image_files.extend(new_image_files)
+        for idx, f in enumerate(image_files):
+            img_listbox.insert(tk.END, f"{idx+1}. {f}")
+        
+        # 새로 추가된 항목을 선택하도록 처리
+        new_idx = image_files.index(img_name)
+        img_listbox.select_set(new_idx)
+        img_listbox.activate(new_idx)
+        img_listbox.see(new_idx)
+        
+        tk.messagebox.showinfo("추가 완료", f"'{img_name}'의 데이터가 CSV 파일에 성공적으로 추가되었습니다.")
+        
+        # **다음 이미지로 자동 이동 (추가된 부분)**
+        selected_idx = img_listbox.curselection()
+        if selected_idx:
+            next_idx = (selected_idx[0] + 1) % len(image_files)
+            img_listbox.select_clear(0, "end")
+            img_listbox.select_set(next_idx)
+            img_listbox.activate(next_idx)
+            self.show_selected_image() # 다음 이미지 정보 표시
+    else:
+        tk.messagebox.showerror("오류", "선택된 이미지에 해당하는 데이터를 찾을 수 없습니다.")
+
+
 
 def handle_DB_upload(csv_file):
     if tk.messagebox.askyesno("확인", "정말로 DB에 업로드하시겠습니까?"):
