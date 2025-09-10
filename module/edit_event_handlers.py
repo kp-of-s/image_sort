@@ -126,10 +126,7 @@ def bind_unclassified_button(
     btn.pack(pady=2)
 
 
-def copy_current_row(self, df, selected_image, folder_path, csv_file_name, img_listbox, image_files):
-    """
-    현재 선택된 행의 데이터를 CSV 마지막 줄에 추가하고 이미지 리스트를 갱신합니다.
-    """
+def copy_current_row(df, selected_image, folder_path, csv_file_name, img_listbox, image_files):
     if not selected_image[0]:
         tk.messagebox.showwarning("경고", "먼저 이미지를 선택해주세요.")
         return
@@ -164,9 +161,7 @@ def copy_current_row(self, df, selected_image, folder_path, csv_file_name, img_l
         img_listbox.select_set(new_idx)
         img_listbox.activate(new_idx)
         img_listbox.see(new_idx)
-        
-        tk.messagebox.showinfo("추가 완료", f"'{img_name}'의 데이터가 CSV 파일에 성공적으로 추가되었습니다.")
-        
+                
         # **다음 이미지로 자동 이동 (추가된 부분)**
         selected_idx = img_listbox.curselection()
         if selected_idx:
@@ -174,7 +169,6 @@ def copy_current_row(self, df, selected_image, folder_path, csv_file_name, img_l
             img_listbox.select_clear(0, "end")
             img_listbox.select_set(next_idx)
             img_listbox.activate(next_idx)
-            self.show_selected_image() # 다음 이미지 정보 표시
     else:
         tk.messagebox.showerror("오류", "선택된 이미지에 해당하는 데이터를 찾을 수 없습니다.")
 

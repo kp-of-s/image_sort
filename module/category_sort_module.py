@@ -35,6 +35,8 @@ def apply_category_mapping(df, log_func=print):
     
     new_df = pd.DataFrame(columns=['name', 'type1', 'type2'])
 
+    print(df)
+
     for index, row in df.iterrows():
         combined_text = ' '.join(
             str(row[col]) for col in ['category1', 'category2', 'category3'] if pd.notna(row[col])
@@ -55,7 +57,6 @@ def apply_category_mapping(df, log_func=print):
             new_row = pd.DataFrame(
                 [{'name': row['name'], 'type2': found_category, 'autoSortRow': 'true'}]
             )
-            print(new_row)
             new_df = pd.concat([new_df, new_row], ignore_index=True)
 
     return new_df
@@ -99,11 +100,12 @@ def category_sorting(folder_path, log_func=print):
     base_dir = folder_path
     origin_file_name = folder_to_csv_name(base_dir)
     name, ext = os.path.splitext(origin_file_name)
-    category_file_name = f"{name}_category{ext}"
+    category_file_name = f"{name}_with_category{ext}"
     category_csv_path = os.path.join(base_dir, category_file_name)
     csv_path = os.path.join(base_dir, origin_file_name)
 
     filtered_df = filter_categories_and_non_type(csv_path, category_csv_path, log_func)
+    print(filtered_df)
     name_df = apply_category_mapping(filtered_df, log_func)
     name_df = type2_to_type1_mapping(name_df, log_func)
     update_and_save(csv_path, name_df, log_func)

@@ -89,6 +89,9 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
             auto_sort_rows.append('true')
         else:
             auto_sort_rows.append('') # 또는 다른 기본값 설정
+
+    df['type1'] = df['type1'].astype(str)
+    df['type2'] = df['type2'].astype(str)
     
     # 기존 데이터프레임에 분류된 값 추가
     df.loc[df['type2'].isna(), "type1"] = cat1_list
@@ -100,9 +103,9 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
 
     # 분류 통계 출력
     stats = df.groupby(["type1", "type2"]).size().reset_index(name="Count")
-    print("=== 분류 통계 ===")
-    print(stats.to_string(index=False))
-    print(f"\n결과 저장: {csv_in}")
+    # print("=== 분류 통계 ===")
+    # print(stats.to_string(index=False))
+    # print(f"\n결과 저장: {csv_in}")
 
     return df
 
@@ -117,4 +120,4 @@ def text_sorting(CSV_IN, log_func=print):
     TXT = os.path.join(get_config_path(), "text_keywords.txt")
     csv_path = os.path.join(CSV_IN, folder_to_csv_name(CSV_IN))
     save_classification(csv_path, TXT)
-    print(f"텍스트 분류 완료: {CSV_IN}")
+    # print(f"텍스트 분류 완료: {CSV_IN}")

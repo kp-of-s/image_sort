@@ -22,7 +22,11 @@ class UploadManager:
         origin_folder_paths = []
         dest_paths = []
 
-        source_folder_name = os.path.basename(source_folder_path.rstrip("/\\")) # 선택한 폴더명
+        source_folder_name = os.path.basename(source_folder_path.rstrip("/\\"))
+
+        # 1. source_folder_path 자체를 리스트에 추가
+        origin_folder_paths.append(source_folder_path)
+        dest_paths.append(os.path.join(get_data_root(), source_folder_name))
 
         for root, dirs, files in os.walk(source_folder_path):
             dirs[:] = [d for d in dirs if d != 'images']
@@ -37,7 +41,6 @@ class UploadManager:
                 relative_root = root.split(source_folder_name, 1)[1].lstrip("/\\")
                 path_from_selected = os.path.join(source_folder_name, relative_root, d)
                 dest_paths.append(os.path.join(get_data_root(), path_from_selected))
-
 
         return origin_folder_paths, dest_paths
 

@@ -49,7 +49,6 @@ def open_sort_progress_page(root, dest_paths):
                 
                 for dest_path in dest_paths:
                     csv_path = os.path.join(dest_path, folder_to_csv_name(dest_path))
-                    print("Checking for:", csv_path)
                     image_path = os.path.join(dest_path, "images")
 
                     if not (os.path.isfile(csv_path) and os.path.isdir(image_path)):
@@ -110,6 +109,7 @@ def open_sort_progress_page(root, dest_paths):
                 log("카테고리 분류 완료!")
             except Exception as e:
                 log(f"카테고리 분류 중 오류 발생: {str(e)}")
+                print(str(e))
         
         async def run_image_sorting(dest_path):
             """이미지 분류 실행"""
