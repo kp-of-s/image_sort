@@ -37,14 +37,20 @@ class EditScreen:
         """
         DataFrame을 정렬하고, 리스트박스에 표시할 파일 리스트와 원본 인덱스 매핑을 생성합니다.
         """
-        df_sorted = self.df.sort_values(["address", "name"]).reset_index(drop=False)
-        
-        self.image_files = [
-            str(img) for img in df_sorted["image"].tolist()
-            if pd.notna(img) and os.path.exists(os.path.join(self.image_folder, str(img)))
-        ]
-        
-        self.original_df_indices = df_sorted["index"].tolist()
+        df_sorted = self.df.sort_values(["address", "name"])
+
+        self.image_files = []
+        self.original_df_indices = []
+
+        # 각 행을 순회하며 존재하는 이미지 파일과 인덱스만 추가합니다.
+        for index, row in df_sorted.iterrows():
+            img_name = str(row["image"])
+            img_path = os.path.join(self.image_folder, img_name)
+            
+            # 이미지가 존재할 때만 리스트에 추가합니다.
+            if pd.notna(img_name) and os.path.exists(img_path):
+                self.image_files.append(img_name)
+                self.original_df_indices.append(index)
         
         self._update_listbox_content()
     
