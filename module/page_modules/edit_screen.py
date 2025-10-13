@@ -1,9 +1,9 @@
 import os
 import tkinter as tk
+from tkinter import ttk
 from util.csv_utils import load_csv, save_csv
 from util.options_utils import load_options
 import pandas as pd
-from PIL import Image, ImageTk
 
 # 이벤트 핸들러 함수들을 별도로 import 합니다.
 from module.edit_event_handlers import (
@@ -11,6 +11,13 @@ from module.edit_event_handlers import (
     bind_unclassified_button,
     handle_DB_upload,
     copy_current_row,
+    is_valid_url,
+    open_webpage_in_browser,
+    update_info_display,
+    show_selected_webpage,
+    on_listbox_click,
+    move_to_next_image,
+    move_to_previous_image,
 )
 
 class EditScreen:
@@ -25,6 +32,13 @@ class EditScreen:
         self.selected_image = [None]
         self.image_files = []
         self.original_df_indices = []
+
+        for col in self.df.columns:
+                if self.df[col].isna().all():  # 모든 값이 None/NaN인 경우
+                    self.df[col] = self.df[col].astype("string")
+        
+        # 브라우저 관련 변수
+        self.browser_tab_id = None  # 기존 탭 ID 저장
 
         self.win = tk.Toplevel()
         self.win.title(f"편집 화면 - {os.path.basename(self.folder_path)}")
@@ -42,14 +56,13 @@ class EditScreen:
         self.image_files = []
         self.original_df_indices = []
 
-        # 각 행을 순회하며 존재하는 이미지 파일과 인덱스만 추가합니다.
+        # 각 행을 순회하며 유효한 이미지 URL과 인덱스만 추가합니다.
         for index, row in df_sorted.iterrows():
-            img_name = str(row["image"])
-            img_path = os.path.join(self.image_folder, img_name)
+            img_url = str(row["image"])
             
-            # 이미지가 존재할 때만 리스트에 추가합니다.
-            if pd.notna(img_name) and os.path.exists(img_path):
-                self.image_files.append(img_name)
+            # URL이 유효할 때만 리스트에 추가합니다.
+            if pd.notna(img_url) and is_valid_url(img_url):
+                self.image_files.append(img_url)
                 self.original_df_indices.append(index)
         
         self._update_listbox_content()
@@ -75,13 +88,23 @@ class EditScreen:
             tk.messagebox.showerror("데이터 업데이트 오류", f"데이터를 업데이트하는 도중 오류가 발생했습니다: {e}")
             return
 
-        self._show_selected_image()
+        update_info_display(self)
+
 
     def _update_listbox_content(self):
         """현재 image_files 리스트를 기반으로 Listbox 내용을 새로 고칩니다."""
         self.img_listbox.delete(0, tk.END)
-        for idx, f in enumerate(self.image_files):
-            self.img_listbox.insert(tk.END, f"{idx+1}. {f}")
+        for idx, url in enumerate(self.image_files):
+            # 해당 행의 name 컬럼 값을 가져와서 표시
+            original_df_index = self.original_df_indices[idx]
+            row = self.df.loc[original_df_index]
+            name_value = row.get('name', f'항목 {idx+1}')
+            
+            # name이 비어있거나 NaN인 경우 기본값 사용
+            if pd.isna(name_value) or name_value == '':
+                name_value = f'항목 {idx+1}'
+            
+            self.img_listbox.insert(tk.END, f"{idx+1}. {name_value}")
 
     def _create_widgets(self):
         screen_width = self.win.winfo_screenwidth()
@@ -102,10 +125,20 @@ class EditScreen:
         self.content_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.content_frame.grid_rowconfigure(0, weight=1)
 
-        self.img_frame = tk.Frame(self.content_frame, bd=2, relief="solid")
-        self.img_frame.pack(fill="both", expand=True)
-        self.img_label = tk.Label(self.img_frame, text="이미지를 선택하세요")
-        self.img_label.pack(fill="none", expand=False)
+        self.web_frame = tk.Frame(self.content_frame, bd=2, relief="solid")
+        self.web_frame.pack(fill="both", expand=True)
+        
+        # 웹페이지 상태 표시를 위한 프레임
+        self.status_frame = tk.Frame(self.web_frame, bg="white")
+        self.status_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # 현재 웹페이지 상태 표시 라벨
+        self.status_label = tk.Label(self.status_frame, 
+                                   text="웹페이지를 선택하면 자동으로 브라우저에서 열립니다", 
+                                   font=("Arial", 12), 
+                                   bg="white",
+                                   wraplength=600)
+        self.status_label.pack(expand=True)
 
         self.info_frame = tk.Frame(self.content_frame, bd=2, relief="solid")
         self.info_frame.pack(fill="x", padx=5, pady=5)
@@ -142,39 +175,26 @@ class EditScreen:
         self.save_button = tk.Button(self.upload_button_frame, text="데이터베이스에 업로드", command=self.handle_db_upload)
         self.save_button.pack(padx=10, pady=5)
 
-    def _show_selected_image(self):
-        """선택된 리스트 항목에 해당하는 이미지를 표시하고 정보를 갱신합니다."""
-        if not self.img_listbox.curselection():
-            return
-        
-        idx = self.img_listbox.curselection()[0]
-        
-        if idx >= len(self.original_df_indices):
-            return
-
-        original_df_index = self.original_df_indices[idx]
-        row = self.df.loc[original_df_index]
-        
-        img_name = row['image']
-        img_path = os.path.join(self.image_folder, img_name)
-        img = Image.open(img_path)
-        img.thumbnail((int(self.win.winfo_screenwidth() * 0.5), int(self.win.winfo_screenheight() * 0.5)))
-        photo = ImageTk.PhotoImage(img)
-
-        self.img_label.config(image=photo, text="")
-        self.img_label.image = photo
-        self.selected_image[0] = img_name
-        
-        self.name_label.config(text=f"name: {row.get('name', '-')}")
-        self.type1_label.config(text=f"type1: {row.get('type1', '-')}")
-        self.type2_label.config(text=f"type2: {row.get('type2', '-')}")
-        self.address_label.config(text=f"address: {row.get('address', '-')}")
 
     def _bind_events(self):
-        # image_selection 로직을 EditScreen 클래스에 통합
-        self.img_listbox.bind("<<ListboxSelect>>", lambda e: self._show_selected_image())
-        self.img_listbox.bind("<space>", lambda e: self._move_to_next_image())
-        self.img_listbox.bind("<Left>", lambda e: self._move_to_previous_image())
+        # webpage_selection 로직을 EditScreen 클래스에 통합
+        self.img_listbox.bind("<<ListboxSelect>>", lambda e: update_info_display(self))
+        self.img_listbox.bind("<Button-1>", lambda e: on_listbox_click(self))
+        
+        # 방향키 네비게이션 (상/좌=이전, 하/우=다음)
+        def handle_prev(e):
+            move_to_previous_image(self)
+            return "break"
+        
+        def handle_next(e):
+            move_to_next_image(self)
+            return "break"
+        
+        self.img_listbox.bind("<Up>", handle_prev)
+        self.img_listbox.bind("<Left>", handle_prev)
+        self.img_listbox.bind("<Down>", handle_next)
+        self.img_listbox.bind("<Right>", handle_next)
+        self.img_listbox.bind("<space>", handle_next)
 
         # 외부 이벤트 핸들러 함수를 호출하며 필요한 인자를 전달
         bind_type1_buttons(
@@ -190,25 +210,6 @@ class EditScreen:
             self.Unclassified_frame
         )
 
-    def _move_to_next_image(self):
-        selected_idx_tuple = self.img_listbox.curselection()
-        if selected_idx_tuple:
-            next_idx = (selected_idx_tuple[0] + 1) % len(self.image_files)
-            self.img_listbox.select_clear(0, "end")
-            self.img_listbox.select_set(next_idx)
-            self.img_listbox.activate(next_idx)
-            self.img_listbox.see(next_idx)
-            self._show_selected_image()
-
-    def _move_to_previous_image(self):
-        selected_idx_tuple = self.img_listbox.curselection()
-        if selected_idx_tuple:
-            prev_idx = (selected_idx_tuple[0] - 1 + len(self.image_files)) % len(self.image_files)
-            self.img_listbox.select_clear(0, "end")
-            self.img_listbox.select_set(prev_idx)
-            self.img_listbox.activate(prev_idx)
-            self.img_listbox.see(prev_idx)
-            self._show_selected_image()
 
     def handle_copy_row(self):
         selected_idx_tuple = self.img_listbox.curselection()
@@ -218,35 +219,41 @@ class EditScreen:
             
         original_selected_idx = selected_idx_tuple[0]
         
-        self.df, self.image_files, self.original_df_indices = copy_current_row(
+        # copy_current_row 함수 호출하여 복제 수행
+        result = copy_current_row(
             self.df, self.img_listbox, self.folder_path, self.csv_file_name, self.original_df_indices
         )
+        
+        # 반환된 결과로 업데이트
+        if len(result) == 3:
+            self.df, self.image_files, self.original_df_indices = result
+        else:
+            return
         
         self._update_listbox_content()
         
         new_item_index = -1
-        for i, file_name in enumerate(self.image_files):
-            # 복제본은 동일 파일명 중 유일하게 'type1'이 비어있는 행입니다.
+        for i, img_url in enumerate(self.image_files):
+            # 복제본은 동일 URL 중 유일하게 'type1'이 비어있는 행입니다.
             # 이 특성을 사용해 인덱스 컬럼 없이 복제본을 찾습니다.
-            if file_name == self.image_files[original_selected_idx]:
+            if img_url == self.image_files[original_selected_idx]:
                 # self.df.loc[self.original_df_indices[i]]로 올바른 행에 접근합니다.
                 target_row = self.df.loc[self.original_df_indices[i]]
                 
                 if pd.isna(target_row['type1']):
                     new_item_index = i
                     break
-                
         if new_item_index != -1:
             self.img_listbox.select_clear(0, "end")
             self.img_listbox.select_set(new_item_index)
             self.img_listbox.activate(new_item_index)
             self.img_listbox.see(new_item_index)
-            self._show_selected_image()
+            update_info_display(self)
         else:
             self.img_listbox.select_clear(0, "end")
             self.img_listbox.select_set(original_selected_idx)
             self.img_listbox.activate(original_selected_idx)
-            self._show_selected_image()
+            update_info_display(self)
 
     def handle_db_upload(self):
         handle_DB_upload(self.csv_file)

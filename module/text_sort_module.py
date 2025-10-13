@@ -48,7 +48,7 @@ def load_rules_from_txt(config_file: str) -> List[Dict]:
 
     if not rules:
         raise ValueError("유효한 규칙이 없습니다.")
-    print(f"[INFO] 규칙 {len(rules)}개 로드 완료")
+    # print(f"[INFO] 규칙 {len(rules)}개 로드 완료")
     return rules
 
 
@@ -64,7 +64,7 @@ def classify_row(row: pd.Series, rules: List[Dict],
                 return rule["type1"], rule["type2"], rule["label"]
     return "미분류", "미분류", ""
 
-def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
+def save_classification(csv_in: str, config_file: str, log_func=print) -> pd.DataFrame:
     rules = load_rules_from_txt(config_file)
     try:
         df = pd.read_csv(csv_in, encoding="utf-8-sig", na_values=["Nan", "nan", "NaN", "미분류"])
@@ -73,9 +73,9 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
 
     df_nan = df[df['type2'].isna()]
 
+
     # 분류 결과를 기존 csv_in 파일에 덮어쓰기
     cat1_list, cat2_list, matched = [], [], []
-    auto_sort_rows = []  # 새로 추가된 리스트
 
     for _, row in df_nan.iterrows():
         c1, c2, lb = classify_row(row, rules)
@@ -83,20 +83,12 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
         cat2_list.append(c2)
         matched.append(lb)
 
-        # 'autoSortRow' 로직 추가
-        # 텍스트 분류가 '미분류'가 아닌 경우에만 'true'로 설정
-        if c2 != '미분류':
-            auto_sort_rows.append('true')
-        else:
-            auto_sort_rows.append('') # 또는 다른 기본값 설정
-
     df['type1'] = df['type1'].astype(str)
     df['type2'] = df['type2'].astype(str)
     
     # 기존 데이터프레임에 분류된 값 추가
     df.loc[df['type2'].isna(), "type1"] = cat1_list
     df.loc[df['type2'].isna(), "type2"] = cat2_list
-    df.loc[df['type2'].isna(), "autoSortRow"] = auto_sort_rows # autoSortRow 컬럼 추가
 
     # csv_in 파일에 덮어쓰기 (기존 파일을 수정)
     df.to_csv(csv_in, index=False, encoding="utf-8-sig")
@@ -119,5 +111,6 @@ def save_classification(csv_in: str, config_file: str) -> pd.DataFrame:
 def text_sorting(CSV_IN, log_func=print):
     TXT = os.path.join(get_config_path(), "text_keywords.txt")
     csv_path = os.path.join(CSV_IN, folder_to_csv_name(CSV_IN))
-    save_classification(csv_path, TXT)
+    log_func(f"\"{csv_path}\"에 텍스트 분류 저장합니다.")
+    save_classification(csv_path, TXT, log_func)
     # print(f"텍스트 분류 완료: {CSV_IN}")

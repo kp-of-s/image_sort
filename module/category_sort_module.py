@@ -55,7 +55,7 @@ def apply_category_mapping(df, log_func=print):
         # 매칭되는 키워드가 있으면 새로운 DataFrame에 추가
         if found_category:
             new_row = pd.DataFrame(
-                [{'name': row['name'], 'type2': found_category, 'autoSortRow': 'true'}]
+                [{'name': row['name'], 'type2': found_category}]
             )
             new_df = pd.concat([new_df, new_row], ignore_index=True)
 

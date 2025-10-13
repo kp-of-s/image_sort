@@ -10,12 +10,11 @@ class UploadManager:
 
     def validate_subfolder(self, subfolder):
         """폴더 구조 검증: image 폴더 및 csv 파일 존재 여부 확인"""
-        images_folder_path = os.path.join(subfolder, 'images')
 
         csv_file_name = folder_to_csv_name(subfolder)
         csv_file_path = os.path.join(subfolder, csv_file_name)
 
-        return os.path.isdir(images_folder_path) and os.path.isfile(csv_file_path)
+        return os.path.isfile(csv_file_path)
     
     def get_all_subfolders(self, source_folder_path):
         """원본 경로 및 복사할 경로 반환"""
@@ -74,17 +73,20 @@ class UploadManager:
             # 필요한 파일/폴더 검증
             if not self.validate_subfolder(full_folder_path):
                 error_messages.append(f"필요한 파일/폴더 없음: {full_folder_path}")
+                print(f"필요한 파일/폴더 없음: {full_folder_path}")
                 continue
 
             # 중복 체크
             if self.is_duplicate(dest_path):
                 error_messages.append(f"중복 폴더: {dest_path}")
+                print(f"중복 폴더: {dest_path}")
                 continue
 
             # data 폴더로 복사
             try:
                 unsorted_dest_path = self.copy_to_data_folder(full_folder_path, dest_path)
                 copied_paths.append(unsorted_dest_path)
+                print(f"복사 완료: {full_folder_path} -> {unsorted_dest_path}")
             except Exception as e:
                 error_messages.append(f"복사 실패: {full_folder_path} - {str(e)}")
 

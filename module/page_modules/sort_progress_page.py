@@ -49,9 +49,8 @@ def open_sort_progress_page(root, dest_paths):
                 
                 for dest_path in dest_paths:
                     csv_path = os.path.join(dest_path, folder_to_csv_name(dest_path))
-                    image_path = os.path.join(dest_path, "images")
 
-                    if not (os.path.isfile(csv_path) and os.path.isdir(image_path)):
+                    if not (os.path.isfile(csv_path)):
                         all_done = False
 
                 if all_done:
@@ -76,7 +75,6 @@ def open_sort_progress_page(root, dest_paths):
                 with open(csv_column_check, "r", encoding="utf-8") as f:
                     content = f.read()
                     column_list = [item.strip() for item in content.split(",") if item.strip()]
-                column_list.append('autoSortRow')
 
                 # df의 칼람명 중, column_list에 있는 칼람이 없다면 추가
                 for col in column_list:
